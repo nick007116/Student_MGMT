@@ -1,0 +1,397 @@
+{% extends "base.html" %}
+{% block title %}Login - Teacher Portal{% endblock %}
+{% block auth_content %}
+<div class="login-page">
+    <div class="login-container">
+        <div class="login-brand text-center">
+            <div class="brand-logo">
+                <i class="bi bi-mortarboard-fill"></i>
+            </div>
+            <h2>Teacher Portal</h2>
+            <p>Sign in to continue to your dashboard</p>
+        </div>
+
+        <div class="login-card">
+            {% if error %}
+            <div class="login-alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <form method="post">
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person input-icon"></i>
+                        <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="label-wrapper">
+                        <label for="password">Password</label>
+                        <a href="#" class="forgot-link">Forgot password?</a>
+                    </div>
+                    <div class="input-wrapper">
+                        <i class="bi bi-lock input-icon"></i>
+                        <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                        <button type="button" class="toggle-password">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="form-group remember-me">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="remember" name="remember">
+                        <span class="checkmark"></span>
+                        Remember me
+                    </label>
+                </div>
+
+                <button type="submit" class="login-button">
+                    <span>Log in</span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="register-prompt">
+                <p>Don't have an account? <a href="{{ url_for('register') }}">Sign up</a></p>
+            </div>
+        </div>
+
+        <div class="login-footer">
+            <p>© 2025 Teacher Portal. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --primary-light: rgba(67, 97, 238, 0.1);
+        --text-color: #333;
+        --text-light: #6c757d;
+        --border-color: #e0e0e0;
+        --background-light: #f8f9fa;
+        --white: #ffffff;
+        --shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        --shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.1);
+        --red: #dc3545;
+    }
+
+    .login-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 2rem 1rem;
+    }
+
+    .login-container {
+        width: 100%;
+        max-width: 450px;
+    }
+
+    .login-brand {
+        margin-bottom: 2rem;
+    }
+
+    .brand-logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+        transform: rotate(-10deg);
+        transition: all 0.3s ease;
+    }
+
+    .brand-logo:hover {
+        transform: rotate(0deg) scale(1.05);
+    }
+
+    .login-brand h2 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    .login-brand p {
+        color: var(--text-light);
+        font-weight: 400;
+    }
+
+    .login-card {
+        background-color: var(--white);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 2.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .login-card:hover {
+        box-shadow: var(--shadow-hover);
+    }
+
+    .login-alert {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: var(--red);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .label-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .forgot-link {
+        font-size: 0.875rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .forgot-link:hover {
+        text-decoration: underline;
+    }
+
+    .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        color: var(--text-light);
+    }
+
+    .toggle-password {
+        position: absolute;
+        right: 15px;
+        background: none;
+        border: none;
+        color: var(--text-light);
+        cursor: pointer;
+        padding: 0;
+        font-size: 1rem;
+    }
+
+    .toggle-password:focus {
+        outline: none;
+    }
+
+    input[type="text"],
+    input[type="password"] {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 2.5rem;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+        outline: none;
+    }
+
+    .remember-me {
+        display: flex;
+        align-items: center;
+    }
+
+    .checkbox-container {
+        display: flex;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.9375rem;
+        color: var(--text-light);
+    }
+
+    .checkbox-container input {
+        position: absolute;
+        opacity: 0;
+        height: 0;
+        width: 0;
+        cursor: pointer;
+    }
+
+    .checkmark {
+        height: 18px;
+        width: 18px;
+        background-color: var(--white);
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        margin-right: 8px;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .checkbox-container:hover input ~ .checkmark {
+        border-color: var(--primary-color);
+    }
+
+    .checkbox-container input:checked ~ .checkmark {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+
+    .checkbox-container input:checked ~ .checkmark:after {
+        display: block;
+        left: 5px;
+        top: 1px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    .login-button {
+        width: 100%;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.85rem;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .login-button:hover {
+        background-color: #3351dd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    .login-button i {
+        transition: transform 0.3s ease;
+    }
+
+    .login-button:hover i {
+        transform: translateX(4px);
+    }
+
+    .register-prompt {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: var(--text-light);
+        font-size: 0.9375rem;
+    }
+
+    .register-prompt a {
+        color: var(--primary-color);
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    .register-prompt a:hover {
+        text-decoration: underline;
+    }
+
+    .login-footer {
+        text-align: center;
+        margin-top: 2rem;
+        color: var(--text-light);
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 576px) {
+        .login-card {
+            padding: 2rem 1.5rem;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Password visibility toggle
+        const togglePassword = document.querySelector('.toggle-password');
+        const passwordInput = document.querySelector('#password');
+        
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('bi-eye');
+            this.querySelector('i').classList.toggle('bi-eye-slash');
+        });
+        
+        // Input field animations
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'translateY(-3px)';
+                this.parentElement.style.transition = 'all 0.3s ease';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'none';
+            });
+        });
+        
+        // Logo animation
+        const logo = document.querySelector('.brand-logo');
+        if (logo) {
+            logo.addEventListener('mouseenter', function() {
+                this.style.transform = 'rotate(0deg) scale(1.05)';
+            });
+            
+            logo.addEventListener('mouseleave', function() {
+                this.style.transform = 'rotate(-10deg)';
+            });
+        }
+        
+        // Button animation
+        const loginButton = document.querySelector('.login-button');
+        loginButton.addEventListener('mouseenter', function() {
+            this.querySelector('i').style.transform = 'translateX(4px)';
+        });
+        
+        loginButton.addEventListener('mouseleave', function() {
+            this.querySelector('i').style.transform = 'translateX(0)';
+        });
+    });
+</script>
+{% endblock %}

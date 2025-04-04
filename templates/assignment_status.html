@@ -1,0 +1,533 @@
+{% extends "base.html" %}
+{% block title %}Assignment Status - Teacher Portal{% endblock %}
+{% block content %}
+{# Add this line to define 'now' if it's not provided by the view function #}
+{% set now = now|default(None) %}
+
+<div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+    <h2 class="fw-bold text-primary"><i class="bi bi-clipboard-check me-2"></i>Assignment Status</h2>
+    <div>
+        <a href="{{ url_for('assignments') }}" class="btn btn-outline-primary d-flex align-items-center">
+            <i class="bi bi-arrow-left me-2"></i>Back to Assignments
+        </a>
+    </div>
+</div>
+
+<!-- Assignment Details Card -->
+<div class="card border-0 shadow-sm card-hover slide-up">
+    <div class="card-header bg-transparent border-0 d-flex align-items-center py-3">
+        <i class="bi bi-file-earmark-text text-primary me-2 fs-5"></i>
+        <h5 class="mb-0 fw-bold">Assignment Overview</h5>
+    </div>
+    <div class="card-body p-4">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h4 class="fw-bold mb-3">{{ assignment.title }}</h4>
+                <!-- Add this section to show targeting info -->
+                {% if target_info %}
+                <div class="mb-2">
+                    <span class="badge bg-primary-subtle text-primary px-3 py-2">
+                        <i class="bi bi-bullseye me-1"></i>{{ target_info }}
+                    </span>
+                </div>
+                {% endif %}
+                <div class="mb-3">
+                    <p class="mb-0 text-muted"><i class="bi bi-card-text me-2"></i>{{ assignment.description }}</p>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card bg-light border-0 p-3 shadow-sm status-card">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle p-3 pulse-primary me-3">
+                            <i class="bi bi-calendar-event"></i>
+                        </div>
+                        <div>
+                            <p class="mb-0 small text-muted">Due Date</p>
+                            <h6 class="mb-0">{{ assignment.due_date.strftime('%b %d, %Y') }}</h6>
+                            <small>{{ assignment.due_date.strftime('%I:%M %p') }}</small>
+                        </div>
+                    </div>
+                    
+                    <!-- Status Summary -->
+                    <div class="mt-3">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small text-muted">Completion</span>
+                            {% set completed_count = status_dict.values()|selectattr('completed')|list|length %}
+                            {% set progress = (completed_count / students|length * 100)|round|int if students|length > 0 else 0 %}
+                            <span class="small fw-medium">{{ progress }}%</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                            <div class="progress-bar progress-animate" role="progressbar" style="width: {{ progress }}%; background: linear-gradient(to right, var(--primary), var(--primary-light));" 
+                                 aria-valuenow="{{ progress }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small class="text-muted">{{ completed_count }} / {{ students|length }} completed</small>
+                            {% if assignment.due_date < now and progress < 100 %}
+                            <span class="badge bg-danger pulse-animation">Past Due</span>
+                            {% elif assignment.due_date < now %}
+                            <span class="badge bg-success badge-glow">Completed</span>
+                            {% else %}
+                            <span class="badge bg-primary badge-glow">In Progress</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Student Status Table -->
+{% if students %}
+<div class="card border-0 shadow-sm card-hover slide-up-delay">
+    <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
+        <div class="d-flex align-items-center">
+            <i class="bi bi-people text-primary me-2 fs-5"></i>
+            <h5 class="mb-0 fw-bold">Student Status</h5>
+        </div>
+        <div>
+            <button class="btn btn-sm btn-primary d-flex align-items-center px-3 btn-hover-effect" id="markAllBtn">
+                <i class="bi bi-check-all me-1"></i>Mark All Complete
+            </button>
+        </div>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table align-middle mb-0 table-hover assignment-table">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-4 border-bottom">Student</th>
+                        <th class="border-bottom">Roll Number</th>
+                        <th class="border-bottom">Class</th>
+                        <th class="border-bottom">Status</th>
+                        <th class="border-bottom">Submission</th>
+                        <th class="text-end pe-4 border-bottom">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                    {% set status = status_dict.get(student.id) %}
+                    <tr class="row-animate">
+                        <td class="ps-4">
+                            <div class="d-flex align-items-center">
+                                <div class="avatar-sm bg-light text-primary rounded-circle me-3 d-flex align-items-center justify-content-center shadow-sm">
+                                    {{ student.name[0] | upper }}
+                                </div>
+                                <div>
+                                    <h6 class="mb-0 fw-semibold">{{ student.name }}</h6>
+                                    <small class="text-muted">Board: {{ student.department }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>{{ student.roll_number }}</td>
+                        <td>{{ student.class_name }}</td>
+                        <td>
+                            {% if status.completed %}
+                            <span class="badge bg-success-subtle text-success px-3 py-2 fade-in">
+                                <i class="bi bi-check-circle me-1"></i>Completed
+                            </span>
+                            {% else %}
+                                {% if assignment.due_date < now %}
+                                <span class="badge bg-danger-subtle text-danger px-3 py-2 fade-in">
+                                    <i class="bi bi-exclamation-triangle me-1"></i>Overdue
+                                </span>
+                                {% else %}
+                                <span class="badge bg-warning-subtle text-warning px-3 py-2 fade-in">
+                                    <i class="bi bi-hourglass-split me-1"></i>Pending
+                                </span>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if status.submission_date %}
+                            <span class="fw-medium">{{ status.submission_date.strftime('%b %d, %Y') }}</span>
+                            <div><small class="text-muted">{{ status.submission_date.strftime('%I:%M %p') }}</small></div>
+                            {% else %}
+                            <span class="text-muted">Not submitted</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end pe-4">
+                            <form method="post" action="{{ url_for('update_status', status_id=status.id) }}" class="status-form">
+                                <div class="form-check form-switch d-flex justify-content-end align-items-center">
+                                    <input class="form-check-input me-2 checkbox-animate" style="cursor: pointer;" type="checkbox" 
+                                           id="completed" name="completed" 
+                                           {% if status.completed %}checked{% endif %} 
+                                           onchange="this.form.submit()">
+                                    <label class="form-check-label" for="completed">
+                                        Mark completed
+                                    </label>
+                                </div>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% else %}
+<div class="card border-0 shadow-sm card-hover slide-up-delay">
+    <div class="card-body p-5 text-center">
+        <div class="mb-4">
+            <div class="empty-state-icon mx-auto mb-3">
+                <i class="bi bi-people fs-3"></i>
+            </div>
+            <h4>No Students Available</h4>
+            <p class="text-muted mb-4">There are no students added to your system yet.</p>
+            <a href="{{ url_for('add_student') }}" class="btn btn-primary btn-hover-effect">
+                <i class="bi bi-person-plus me-2"></i>Add Your First Student
+            </a>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<style>
+    /* Modern Color Scheme aligned with dashboard */
+    :root {
+        --primary: #4361ee;
+        --primary-light: #5a74f0;
+        --primary-dark: #3651d3;
+        --secondary: #3f37c9;
+        --accent: #4895ef;
+        --light: #f8f9fa;
+        --dark: #212529;
+        --success: #28a745;
+        --warning: #ffc107;
+        --danger: #dc3545;
+        --shadow-sm: 0 2px 10px rgba(0,0,0,0.05);
+        --shadow-md: 0 5px 15px rgba(0,0,0,0.08);
+        --radius-sm: 8px;
+        --radius-md: 12px;
+    }
+    
+    /* Card Enhancements */
+    .card {
+        border-radius: var(--radius-md);
+        border: none;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Text styling */
+    .text-primary {
+        color: var(--primary) !important;
+    }
+    
+    /* Button Styles */
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(to right, var(--primary), var(--primary-light));
+        border: none;
+        box-shadow: 0 2px 5px rgba(30,144,255,0.3);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(to right, var(--primary-dark), var(--primary));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(30,144,255,0.4);
+    }
+    
+    .btn-outline-primary {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+    }
+    
+    .btn-outline-primary:hover {
+        background: linear-gradient(to right, var(--primary), var(--primary-light));
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-hover-effect:hover {
+        transform: translateY(-2px);
+    }
+    
+    /* Avatar styling */
+    .avatar-sm {
+        height: 40px;
+        width: 40px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    tr:hover .avatar-sm {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(67, 97, 238, 0.2);
+    }
+    
+    /* Icon shape with animation */
+    .icon-shape {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover .icon-shape {
+        transform: scale(1.15);
+    }
+    
+    .icon-shape i {
+        font-size: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    /* Subtly colored backgrounds for statuses */
+    .bg-success-subtle {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+    
+    .bg-warning-subtle {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    .bg-danger-subtle {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    /* Table styling consistent with dashboard */
+    .table th {
+        font-weight: 600;
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #495057;
+    }
+    
+    .assignment-table tr {
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+    
+    .assignment-table tr:hover {
+        background-color: rgba(67, 97, 238, 0.03);
+        transform: translateX(5px);
+        border-left: 3px solid var(--primary);
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--success);
+        border-color: var(--success);
+    }
+    
+    /* Status card */
+    .status-card {
+        transition: all 0.3s ease;
+        border-radius: var(--radius-sm);
+    }
+    
+    .status-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Progress bar animation */
+    .progress {
+        border-radius: 20px;
+        overflow: hidden;
+        height: 8px;
+        background-color: #e9ecef;
+        box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    }
+    
+    .progress-animate {
+        animation: fillBar 1.5s ease-in-out;
+    }
+    
+    @keyframes fillBar {
+        from { width: 0; }
+    }
+    
+    /* Badge effects */
+    .badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+    
+    .badge-glow {
+        animation: glow 2s infinite alternate;
+    }
+    
+    @keyframes glow {
+        from { box-shadow: 0 0 5px rgba(67, 97, 238, 0.3); }
+        to { box-shadow: 0 0 10px rgba(67, 97, 238, 0.6); }
+    }
+    
+    .pulse-animation {
+        animation: pulse 1.5s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+        100% { transform: scale(1); }
+    }
+    
+    /* Pulse animation for status icons */
+    @keyframes pulse-primary {
+        0% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0.4); }
+        70% { box-shadow: 0 0 0 10px rgba(67, 97, 238, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(67, 97, 238, 0); }
+    }
+    
+    .pulse-primary {
+        animation: pulse-primary 2s infinite;
+    }
+    
+    /* Checkbox animation */
+    .checkbox-animate {
+        transition: all 0.3s ease;
+    }
+    
+    .checkbox-animate:checked {
+        transform: scale(1.2);
+    }
+    
+    /* Page animations */
+    .fade-in {
+        animation: fadeIn 0.8s ease forwards;
+    }
+    
+    .slide-up {
+        animation: slideUp 0.8s ease forwards;
+    }
+    
+    .slide-up-delay {
+        opacity: 0;
+        animation: slideUp 0.8s ease forwards;
+        animation-delay: 0.3s;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+    
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    /* Empty state styling */
+    .empty-state-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: linear-gradient(to right, rgba(67, 97, 238, 0.1), rgba(76, 201, 240, 0.1));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        border: 2px dashed rgba(67, 97, 238, 0.2);
+    }
+    
+    .empty-state-icon i {
+        font-size: 2.5rem;
+        color: var(--primary);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add staggered animation to table rows
+        const tableRows = document.querySelectorAll('.row-animate');
+        tableRows.forEach((row, index) => {
+            row.style.opacity = '0';
+            row.style.transform = 'translateY(20px)';
+            
+            setTimeout(() => {
+                row.style.transition = 'all 0.5s ease';
+                row.style.opacity = '1';
+                row.style.transform = 'translateY(0)';
+            }, 100 + (index * 50));
+        });
+        
+        // Mark all complete button functionality
+        const markAllBtn = document.getElementById('markAllBtn');
+        if (markAllBtn) {
+            markAllBtn.addEventListener('click', function() {
+                const uncheckedCheckboxes = document.querySelectorAll('.status-form .form-check-input:not(:checked)');
+                console.log('Found', uncheckedCheckboxes.length, 'unchecked checkboxes');
+                
+                if (uncheckedCheckboxes.length > 0) {
+                    if (confirm('Mark all assignments as complete?')) {
+                        uncheckedCheckboxes.forEach((checkbox, index) => {
+                            setTimeout(() => {
+                                checkbox.checked = true;
+                                console.log('Setting checkbox to checked:', checkbox.id);
+                                animateCheckChange(checkbox);
+                            }, index * 200);
+                        });
+                    }
+                } else {
+                    alert('All assignments are already marked as complete.');
+                }
+            });
+        }
+        
+        // Add hover effect on table rows to show action buttons better
+        // FIXED: Renamed variable to avoid conflict with earlier declaration
+        document.querySelectorAll('.assignment-table tbody tr').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                const checkbox = this.querySelector('.form-check-input');
+                if (checkbox && !checkbox.checked) {
+                    checkbox.classList.add('animate__animated', 'animate__heartBeat');
+                }
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                const checkbox = this.querySelector('.form-check-input');
+                if (checkbox) {
+                    checkbox.classList.remove('animate__animated', 'animate__heartBeat');
+                }
+            });
+        });
+    });
+    
+    // Animate checkbox changes
+    function animateCheckChange(checkbox) {
+        const row = checkbox.closest('tr');
+        const statusBadge = row.querySelector('.badge');
+        
+        if (checkbox.checked) {
+            checkbox.style.transform = 'scale(1.2)';
+            
+            if (statusBadge && !statusBadge.classList.contains('text-success')) {
+                statusBadge.style.opacity = '0';
+                setTimeout(() => {
+                    const newBadge = document.createElement('span');
+                    newBadge.className = 'badge bg-success-subtle text-success px-3 py-2 fade-in';
+                    newBadge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Completed';
+                    statusBadge.parentNode.replaceChild(newBadge, statusBadge);
+                }, 200);
+            }
+            
+            // FIXED: Allow animation to complete before submitting the form
+            setTimeout(() => {
+                checkbox.style.transform = 'scale(1)';
+                checkbox.form.submit();
+            }, 400);
+        } else {
+            checkbox.form.submit();
+        }
+    }
+</script>
+{% endblock %}

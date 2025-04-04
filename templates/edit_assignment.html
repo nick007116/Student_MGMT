@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+{% block title %}Edit Assignment - Teacher Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+    <h2 class="fw-bold text-primary"><i class="bi bi-pencil-square me-2"></i>Edit Assignment</h2>
+    <a href="{{ url_for('assignments') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Assignments
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm slide-up">
+    <div class="card-header bg-light py-3 border-0">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-clipboard-data me-2 text-primary"></i>Assignment Details</h5>
+    </div>
+    <div class="card-body p-4">
+        <form method="post">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="form-group mb-3">
+                        <label for="title" class="form-label fw-medium mb-2">Assignment Title <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" value="{{ assignment.title }}" required>
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <div class="form-group mb-3">
+                        <label for="description" class="form-label fw-medium mb-2">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="5" 
+                            placeholder="Enter detailed instructions for this assignment">{{ assignment.description }}</textarea>
+                        <div class="form-text"><i class="bi bi-info-circle me-1"></i>Provide clear instructions and expectations for students.</div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="due_date" class="form-label fw-medium mb-2">Due Date and Time <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-calendar-event"></i>
+                            </span>
+                            <input type="datetime-local" class="form-control" id="due_date" name="due_date" 
+                                value="{{ assignment.due_date.strftime('%Y-%m-%dT%H:%M') }}" required>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label for="points" class="form-label fw-medium mb-2">Points</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-star"></i>
+                            </span>
+                            <input type="number" class="form-control" id="points" name="points" 
+                                value="{{ assignment.points|default(100) }}" min="0" step="1">
+                        </div>
+                        <div class="form-text"><i class="bi bi-trophy me-1"></i>Maximum points students can earn</div>
+                    </div>
+                </div>
+                
+                <!-- Assignment Target Section -->
+                <div class="col-12 mt-2">
+                    <div class="card bg-light border-0">
+                        <div class="card-header bg-transparent border-0">
+                            <h6 class="fw-bold text-primary mb-0">
+                                <i class="bi bi-people me-2"></i>Assignment Targeting
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="target_type" id="allStudents" value="all" 
+                                            {% if assignment.target_type == 'all' or not assignment.target_type %}checked{% endif %} 
+                                            onclick="toggleTargetOptions('all')">
+                                        <label class="form-check-label" for="allStudents">
+                                            All Students
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="target_type" id="byClass" value="class" 
+                                            {% if assignment.target_type == 'class' %}checked{% endif %} 
+                                            onclick="toggleTargetOptions('class')">
+                                        <label class="form-check-label" for="byClass">
+                                            By Class
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="target_type" id="byBoard" value="department" 
+                                            {% if assignment.target_type == 'department' %}checked{% endif %} 
+                                            onclick="toggleTargetOptions('department')">
+                                        <label class="form-check-label" for="byBoard">
+                                            By Board
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="target_type" id="bySchool" value="school" 
+                                            {% if assignment.target_type == 'school' %}checked{% endif %} 
+                                            onclick="toggleTargetOptions('school')">
+                                        <label class="form-check-label" for="bySchool">
+                                            By School
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-12 mt-2">
+                                    <div class="form-check mb-3">
+                                        <input class="form-check-input" type="radio" name="target_type" id="specificStudents" value="specific" 
+                                            {% if assignment.target_type == 'specific' %}checked{% endif %} 
+                                            onclick="toggleTargetOptions('specific')">
+                                        <label class="form-check-label" for="specificStudents">
+                                            Specific Students
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Target options that show/hide based on selection -->
+                            <div id="classOptions" class="target-option mt-3" style="display:none;">
+                                <label for="class_target" class="form-label">Select Class</label>
+                                <select class="form-select" id="class_target" name="class_target">
+                                    <option value="">Select a class</option>
+                                    {% for class_name in class_list %}
+                                    <option value="{{ class_name }}" 
+                                        {% if assignment.target_type == 'class' and assignment.target_value == class_name %}selected{% endif %}>
+                                        {{ class_name }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div id="departmentOptions" class="target-option mt-3" style="display:none;">
+                                <label for="department_target" class="form-label">Select Board</label>
+                                <select class="form-select" id="department_target" name="department_target">
+                                    <option value="">Select a board</option>
+                                    {% for department in department_list %}
+                                    <option value="{{ department }}"
+                                        {% if assignment.target_type == 'department' and assignment.target_value == department %}selected{% endif %}>
+                                        {{ department }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div id="schoolOptions" class="target-option mt-3" style="display:none;">
+                                <label for="school_target" class="form-label">Select School</label>
+                                <select class="form-select" id="school_target" name="school_target">
+                                    <option value="">Select a school</option>
+                                    {% for school in school_list %}
+                                    <option value="{{ school }}"
+                                        {% if assignment.target_type == 'school' and assignment.target_value == school %}selected{% endif %}>
+                                        {{ school }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            
+                            <div id="specificStudentOptions" class="target-option mt-3" style="display:none;">
+                                <label class="form-label">Select Students</label>
+                                <div class="student-select-container p-3 border rounded" style="max-height: 200px; overflow-y: auto;">
+                                    {% if all_students %}
+                                        {% for student in all_students %}
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input" type="checkbox" name="student_targets" value="{{ student.id }}" id="student{{ student.id }}"
+                                                {% if assignment.target_type == 'specific' and student.id in assignment.target_value %}checked{% endif %}>
+                                            <label class="form-check-label d-flex align-items-center" for="student{{ student.id }}">
+                                                <div class="avatar-xs me-2">
+                                                    {{ student.name[0] | upper if student.name else '?' }}
+                                                </div>
+                                                <span>{{ student.name }} {% if student.roll_number %}({{ student.roll_number }}){% endif %}</span>
+                                                {% if student.class_name %}
+                                                <span class="badge bg-light text-dark ms-2">{{ student.class_name }}</span>
+                                                {% endif %}
+                                            </label>
+                                        </div>
+                                        {% endfor %}
+                                    {% else %}
+                                        <div class="alert alert-info mb-0">
+                                            <i class="bi bi-info-circle me-2"></i>No students found. Please add students first.
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="mt-2">
+                                    <button type="button" class="btn btn-sm btn-outline-primary" id="selectAllStudents">Select All</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" id="deselectAllStudents">Deselect All</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-12">
+                    <div class="card bg-light border-0 p-3">
+                        <div class="form-check form-switch mb-0">
+                            <input class="form-check-input" type="checkbox" id="visible" name="visible" 
+                                {% if assignment.visible|default(true) %}checked{% endif %}>
+                            <label class="form-check-label fw-medium" for="visible">
+                                <i class="bi bi-eye me-2 text-primary"></i>Make visible to students
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('assignments') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-save me-2"></i>Update Assignment
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4 slide-up-delay">
+    <div class="card border-0 shadow-sm danger-card">
+        <div class="card-header bg-danger bg-opacity-10 border-0">
+            <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Danger Zone</h5>
+        </div>
+        <div class="card-body">
+            <p>Deleting this assignment will permanently remove it and all associated student submissions.</p>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash me-2"></i>Delete Assignment
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Delete Assignment</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-exclamation-diamond"></i>
+                    </div>
+                </div>
+                <p>Are you sure you want to delete <strong>{{ assignment.title }}</strong>?</p>
+                <p class="text-danger"><small><i class="bi bi-info-circle me-1"></i>This action cannot be undone and will remove all student submissions for this assignment.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="{{ url_for('delete_assignment', assignment_id=assignment.id) }}" class="btn btn-danger">
+                    <i class="bi bi-trash me-1"></i>Delete Permanently
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Simplified styles with minimum hover effects */
+    /* Card styling - no hover transform */
+    .card {
+        border-radius: 10px;
+    }
+    
+    /* Simple button hover effect */
+    .btn {
+        border-radius: 8px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 500;
+        transition: transform 0.2s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    /* Form controls - simplified */
+    .form-control, .input-group-text, .form-select {
+        border-radius: 8px;
+        padding: 0.6rem 0.8rem;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15);
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+    }
+    
+    /* Danger card styling */
+    .danger-card {
+        border-left: 3px solid #dc3545;
+    }
+    
+    /* Student selection container */
+    .student-select-container {
+        max-height: 250px;
+        overflow-y: auto;
+        border-radius: 10px;
+        background: white;
+    }
+    
+    /* Student avatar */
+    .avatar-xs {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background-color: rgba(67, 97, 238, 0.1);
+        color: #4361ee;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    /* Empty state icon for modal */
+    .empty-state-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        border: 2px dashed rgba(220, 53, 69, 0.2);
+    }
+    
+    .empty-state-icon i {
+        font-size: 2.5rem;
+        color: #dc3545;
+    }
+    
+    /* Basic animations */
+    .slide-up {
+        animation: slideUp 0.5s ease forwards;
+    }
+    
+    .slide-up-delay {
+        animation: slideUp 0.5s ease 0.2s forwards;
+        opacity: 0;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Define the toggleTargetOptions function
+    function toggleTargetOptions(option) {
+        // Hide all target option containers
+        document.querySelectorAll('.target-option').forEach(el => {
+            el.style.display = 'none';
+        });
+        
+        // Show the selected option container
+        if (option === 'class') {
+            document.getElementById('classOptions').style.display = 'block';
+        } else if (option === 'department') {
+            document.getElementById('departmentOptions').style.display = 'block';
+        } else if (option === 'school') {
+            document.getElementById('schoolOptions').style.display = 'block';
+        } else if (option === 'specific') {
+            document.getElementById('specificStudentOptions').style.display = 'block';
+        }
+    }
+    
+    // Make the function available globally
+    window.toggleTargetOptions = toggleTargetOptions;
+    
+    // Initialize based on the current selection
+    const selectedOption = document.querySelector('input[name="target_type"]:checked');
+    if (selectedOption) {
+        toggleTargetOptions(selectedOption.value);
+    }
+    
+    // Select/Deselect All Students buttons
+    document.getElementById('selectAllStudents')?.addEventListener('click', function() {
+        document.querySelectorAll('input[name="student_targets"]').forEach(checkbox => {
+            checkbox.checked = true;
+        });
+    });
+    
+    document.getElementById('deselectAllStudents')?.addEventListener('click', function() {
+        document.querySelectorAll('input[name="student_targets"]').forEach(checkbox => {
+            checkbox.checked = false;
+        });
+    });
+});
+</script>
+{% endblock %}

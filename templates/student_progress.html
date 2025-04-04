@@ -1,0 +1,628 @@
+{% extends "base.html" %}
+{% block title %}Student Progress - Teacher Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+    <h2 class="fw-bold text-primary"><i class="bi bi-person-lines-fill me-2"></i>Student Progress</h2>
+    <div>
+        <a href="{{ url_for('dashboard') }}" class="btn btn-outline-primary d-flex align-items-center">
+            <i class="bi bi-arrow-left me-2"></i>Back to Dashboard
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Student Selection Form -->
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm slide-up">
+            <div class="card-header bg-transparent border-0 d-flex align-items-center py-3">
+                <i class="bi bi-search text-primary me-2 fs-5"></i>
+                <h5 class="mb-0 fw-bold">Find Student</h5>
+            </div>
+            <div class="card-body p-4">
+                <form method="post" action="{{ url_for('student_progress') }}" id="studentForm">
+                    <div class="mb-3">
+                        <label for="student_id" class="form-label">Select Student</label>
+                        <select class="form-select" id="student_id" name="student_id" required>
+                            <option value="">Choose a student...</option>
+                            {% for student in students %}
+                            <option value="{{ student.id }}" {% if selected_student and selected_student.id == student.id %}selected{% endif %}>
+                                {{ student.name }} ({{ student.roll_number }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-file-earmark-bar-graph me-2"></i>View Progress
+                    </button>
+                </form>
+                
+                {% if selected_student %}
+                <hr class="my-4">
+                <div class="student-profile text-center">
+                    <div class="avatar-lg bg-light text-primary rounded-circle mx-auto mb-3 d-flex align-items-center justify-content-center shadow-sm">
+                        {{ selected_student.name[0] | upper }}
+                    </div>
+                    <h5 class="mb-1 fw-bold">{{ selected_student.name }}</h5>
+                    <p class="text-muted mb-2">{{ selected_student.roll_number }}</p>
+                    <div class="student-details text-start mt-4">
+                        <div class="detail-item d-flex align-items-center mb-2">
+                            <div class="detail-icon me-3">
+                                <i class="bi bi-building text-primary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Board</small>
+                                <div>{{ selected_student.department or 'Not specified' }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-item d-flex align-items-center mb-2">
+                            <div class="detail-icon me-3">
+                                <i class="bi bi-bookmark text-primary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Class</small>
+                                <div>{{ selected_student.class_name or 'Not specified' }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-item d-flex align-items-center mb-2">
+                            <div class="detail-icon me-3">
+                                <i class="bi bi-house text-primary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">School</small>
+                                <div>{{ selected_student.school or 'Not specified' }}</div>
+                            </div>
+                        </div>
+                        <div class="detail-item d-flex align-items-center mb-2">
+                            <div class="detail-icon me-3">
+                                <i class="bi bi-telephone text-primary"></i>
+                            </div>
+                            <div>
+                                <small class="text-muted">Phone</small>
+                                <div>{{ selected_student.phone_number or 'Not provided' }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{{ url_for('export_student', student_id=selected_student.id) }}" class="btn btn-outline-success w-100">
+                            <i class="bi bi-file-earmark-excel me-2"></i>Export Student Data
+                        </a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Progress Information -->
+    <div class="col-md-8">
+        {% if selected_student and assignments_data %}
+        <div class="card border-0 shadow-sm mb-4 slide-up-delay">
+            <div class="card-header bg-transparent border-0 d-flex align-items-center py-3">
+                <i class="bi bi-bar-chart-line text-primary me-2 fs-5"></i>
+                <h5 class="mb-0 fw-bold">Overall Progress</h5>
+            </div>
+            <div class="card-body p-4">
+                <div class="row align-items-center">
+                    <div class="col-lg-4 text-center mb-3 mb-lg-0">
+                        <div class="progress-circle mx-auto" style="--completion: {{ completion_rate }};">
+                                    <div class="progress-circle-inner d-flex align-items-center justify-content-center">
+                                        <span class="completion-percentage fw-bold">{{ completion_rate }}%</span>
+                                    </div>
+                                </div>
+                    </div>
+                    <div class="col-lg-8">
+                        <div class="progress-stats">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span>Assignment Completion</span>
+                                <span class="fw-medium">{{ completion_rate }}%</span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar progress-animate" role="progressbar" 
+                                     style="width: {{ completion_rate }}%;" 
+                                     aria-valuenow="{{ completion_rate }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100"></div>
+                            </div>
+                            
+                            <div class="row g-0 mt-4">
+                                <div class="col-6">
+                                    <div class="stats-card text-center p-3 completed-card">
+                                        <div class="stats-icon bg-success-subtle mb-2">
+                                            <i class="bi bi-check-circle-fill text-success"></i>
+                                        </div>
+                                        <h3 class="fw-bold mb-0">{{ assignments_data | selectattr('is_completed', 'eq', true) | list | length }}</h3>
+                                        <p class="text-muted mb-0">Completed</p>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="stats-card text-center p-3 pending-card">
+                                        <div class="stats-icon bg-danger-subtle mb-2">
+                                            <i class="bi bi-hourglass-split text-danger"></i>
+                                        </div>
+                                        <h3 class="fw-bold mb-0">{{ assignments_data | selectattr('is_completed', 'eq', false) | list | length }}</h3>
+                                        <p class="text-muted mb-0">Pending</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Assignments List -->
+        <div class="card border-0 shadow-sm slide-up-delay-2">
+            <div class="card-header bg-transparent border-0 d-flex justify-content-between align-items-center py-3">
+                <div class="d-flex align-items-center">
+                    <i class="bi bi-list-check text-primary me-2 fs-5"></i>
+                    <h5 class="mb-0 fw-bold">Assignment Details</h5>
+                </div>
+                {% if assignments_data | selectattr('is_completed', 'eq', false) | list | length > 0 %}
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-primary px-3" id="filterAllBtn">
+                        All
+                    </button>
+                    <button class="btn btn-sm btn-outline-success px-3" id="filterCompletedBtn">
+                        Completed
+                    </button>
+                    <button class="btn btn-sm btn-outline-danger px-3" id="filterPendingBtn">
+                        Pending
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0 assignment-table">
+                        <thead class="bg-light">
+                            <tr>
+                                <th class="ps-4 border-bottom">Assignment</th>
+                                <th class="border-bottom">Due Date</th>
+                                <th class="border-bottom">Status</th>
+                                <th class="text-end pe-4 border-bottom">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for assignment in assignments_data %}
+                            <tr class="row-animate assignment-row {% if assignment.is_completed %}completed{% else %}pending{% endif %}">
+                                <td class="ps-4">
+                                    <div class="d-flex align-items-center">
+                                        <div class="avatar-sm bg-light text-primary rounded-circle me-3 d-flex align-items-center justify-content-center shadow-sm">
+                                            <i class="bi bi-file-text"></i>
+                                        </div>
+                                        <div>
+                                            <h6 class="mb-0 fw-semibold">{{ assignment.title }}</h6>
+                                            <small class="text-muted">{{ assignment.description | truncate(50) }}</small>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="fw-medium">{{ assignment.due_date.strftime('%b %d, %Y') }}</span>
+                                    <div><small class="text-muted">{{ assignment.due_date.strftime('%I:%M %p') }}</small></div>
+                                </td>
+                                <td>
+                                    {% if assignment.is_completed %}
+                                    <span class="badge bg-success-subtle text-success px-3 py-2 fade-in">
+                                        <i class="bi bi-check-circle me-1"></i>Completed
+                                    </span>
+                                    {% else %}
+                                        {% if assignment.is_overdue %}
+                                        <span class="badge bg-danger-subtle text-danger px-3 py-2 fade-in">
+                                            <i class="bi bi-exclamation-triangle me-1"></i>Overdue
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-warning-subtle text-warning px-3 py-2 fade-in">
+                                            <i class="bi bi-hourglass-split me-1"></i>Pending
+                                        </span>
+                                        {% endif %}
+                                    {% endif %}
+                                    
+                                    {% if assignment.submission_date %}
+                                    <div class="mt-1">
+                                        <small class="text-muted">Submitted: {{ assignment.submission_date.strftime('%b %d, %Y') }}</small>
+                                    </div>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end pe-4">
+                                    <a href="{{ url_for('assignment_status', assignment_id=assignment.id) }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="bi bi-eye me-1"></i>View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% elif selected_student %}
+        <div class="card border-0 shadow-sm slide-up-delay">
+            <div class="card-body p-5 text-center">
+                <div class="mb-4">
+                    <div class="empty-state-icon mx-auto mb-3">
+                        <i class="bi bi-clipboard fs-3"></i>
+                    </div>
+                    <h4>No Assignments Available</h4>
+                    <p class="text-muted mb-4">This student has not been assigned any work yet.</p>
+                    <a href="{{ url_for('add_assignment') }}" class="btn btn-primary btn-hover-effect">
+                        <i class="bi bi-plus-circle me-2"></i>Create an Assignment
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="card border-0 shadow-sm slide-up-delay">
+            <div class="card-body p-5 text-center">
+                <div class="mb-4">
+                    <div class="empty-state-icon mx-auto mb-3">
+                        <i class="bi bi-person-check fs-3"></i>
+                    </div>
+                    <h4>Select a Student</h4>
+                    <p class="text-muted mb-4">Choose a student from the list to view their progress details.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+    /* Enhanced avatar and icon styling */
+    .avatar-sm {
+        height: 40px;
+        width: 40px;
+        transition: all 0.3s ease;
+    }
+    
+    .avatar-lg {
+        height: 80px;
+        width: 80px;
+        font-size: 32px;
+        transition: all 0.3s ease;
+    }
+    
+    tr:hover .avatar-sm {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(67, 97, 238, 0.2);
+    }
+    
+    /* Improved icon shape with animation */
+    .icon-shape {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover .icon-shape {
+        transform: scale(1.15);
+    }
+    
+    .icon-shape i {
+        font-size: 1.5rem;
+        transition: all 0.3s ease;
+    }
+    
+    /* Button Styles */
+    .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        padding: 0.5rem 1.25rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(to right, var(--primary), var(--primary-light));
+        border: none;
+        box-shadow: 0 2px 5px rgba(30,144,255,0.3);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(to right, var(--primary-dark), var(--primary));
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(30,144,255,0.4);
+    }
+    
+    .btn-outline-primary {
+        border: 1px solid var(--primary);
+        color: var(--primary);
+    }
+    
+    .btn-outline-primary:hover {
+        background: linear-gradient(to right, var(--primary), var(--primary-light));
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-sm {
+        padding: 0.25rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Card Enhancements */
+    .card {
+        border-radius: var(--radius-md);
+        border: none;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.2s ease, box-shadow 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .card-hover:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Table styling */
+    .table th {
+        font-weight: 600;
+        font-size: 0.8125rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #495057;
+    }
+    
+    .assignment-table tr {
+        transition: all 0.2s ease;
+        border-left: 3px solid transparent;
+    }
+    
+    .assignment-table tr:hover {
+        background-color: rgba(67, 97, 238, 0.03);
+        transform: translateX(5px);
+        border-left: 3px solid var(--primary);
+    }
+    
+    /* Badge styling */
+    .badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+        border-radius: 6px;
+    }
+    
+    .bg-success-subtle {
+        background-color: rgba(40, 167, 69, 0.1);
+    }
+    
+    .bg-warning-subtle {
+        background-color: rgba(255, 193, 7, 0.1);
+    }
+    
+    .bg-danger-subtle {
+        background-color: rgba(220, 53, 69, 0.1);
+    }
+    
+    /* Progress circle */
+    .progress-circle {
+        width: 160px;
+        height: 160px;
+        border-radius: 50%;
+        background: conic-gradient(var(--primary) calc(var(--completion) * 1%), #e9ecef 0);
+        position: relative;
+        --completion: {{ completion_rate }};
+    }
+    
+    .progress-circle-inner {
+        position: absolute;
+        left: 15px;
+        right: 15px;
+        top: 15px;
+        bottom: 15px;
+        background: white;
+        border-radius: 50%;
+    }
+        
+    /* Button Hover Effect */
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+    }
+
+        /* Progress Circle Styling */
+        /* Progress Circle Styling */
+.progress-circle {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--primary) calc(var(--completion) * 1%), 
+        #e9ecef 0
+    );
+    position: relative;
+    --completion: {{ completion_rate }};
+    display: flex;
+    margin: auto;
+}
+
+.progress-circle-inner {
+    position: absolute;
+    left: 15px;
+    right: 15px;
+    top: 15px;
+    bottom: 15px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--primary);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+        .progress-circle-inner {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            color: #4caf50;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Slide-Up Animation */
+        .slide-up {
+            animation: slideUp 0.5s ease forwards;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .slide-up-delay {
+            animation: slideUp 0.7s ease forwards;
+        }
+
+        .slide-up-delay-2 {
+            animation: slideUp 0.9s ease forwards;
+        }
+
+        /* Fade-In Animation */
+        .fade-in {
+            animation: fadeIn 0.4s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Stats Card Styling */
+        .stats-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .stats-card:hover {
+            background: #e9ecef;
+            transform: translateY(-2px);
+        }
+
+        .completed-card .stats-icon {
+            background-color: rgba(76, 175, 80, 0.1);
+        }
+
+        .pending-card .stats-icon {
+            background-color: rgba(244, 67, 54, 0.1);
+        }
+
+        /* Empty State Icon Styling */
+        .empty-state-icon {
+            font-size: 3rem;
+            color: #6c757d;
+        }
+
+        /* Table Hover Animation */
+        .assignment-row:hover {
+            background-color: #f1f3f5;
+            transition: all 0.2s ease;
+        }
+
+        .badge {
+            font-size: 0.9rem;
+            border-radius: 5px;
+        }
+
+        /* Custom Scrollbar */
+        .table-responsive::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb {
+            background-color: #888;
+            border-radius: 3px;
+        }
+
+        .table-responsive::-webkit-scrollbar-thumb:hover {
+            background-color: #555;
+        }
+
+        /* Smooth Scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Filter buttons functionality
+        const filterAllBtn = document.getElementById('filterAllBtn');
+        const filterCompletedBtn = document.getElementById('filterCompletedBtn');
+        const filterPendingBtn = document.getElementById('filterPendingBtn');
+        const assignmentRows = document.querySelectorAll('.assignment-row');
+        
+        if (filterAllBtn && filterCompletedBtn && filterPendingBtn) {
+            // Set active button style
+            const setActiveButton = (activeBtn) => {
+                // Reset all buttons to outline style
+                filterAllBtn.className = 'btn btn-sm btn-outline-primary px-3';
+                filterCompletedBtn.className = 'btn btn-sm btn-outline-success px-3';
+                filterPendingBtn.className = 'btn btn-sm btn-outline-danger px-3';
+                
+                // Set active button style (solid color instead of outline)
+                if (activeBtn === filterAllBtn) {
+                    activeBtn.className = 'btn btn-sm btn-primary px-3';
+                } else if (activeBtn === filterCompletedBtn) {
+                    activeBtn.className = 'btn btn-sm btn-success px-3';
+                } else if (activeBtn === filterPendingBtn) {
+                    activeBtn.className = 'btn btn-sm btn-danger px-3';
+                }
+            };
+            
+            // Show all assignments
+            filterAllBtn.addEventListener('click', function() {
+                assignmentRows.forEach(row => {
+                    row.style.display = '';
+                });
+                setActiveButton(filterAllBtn);
+            });
+            
+            // Show only completed assignments
+            filterCompletedBtn.addEventListener('click', function() {
+                assignmentRows.forEach(row => {
+                    if (row.classList.contains('completed')) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                setActiveButton(filterCompletedBtn);
+            });
+            
+            // Show only pending assignments
+            filterPendingBtn.addEventListener('click', function() {
+                assignmentRows.forEach(row => {
+                    if (row.classList.contains('pending')) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                setActiveButton(filterPendingBtn);
+            });
+            
+            // Set All as the default active button
+            setActiveButton(filterAllBtn);
+        }
+    });
+</script>
+{% endblock %}

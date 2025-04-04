@@ -1,0 +1,476 @@
+{% extends "base.html" %}
+{% block title %}Register - Teacher Portal{% endblock %}
+{% block auth_content %}
+<div class="register-page">
+    <div class="register-container">
+        <div class="text-center mb-4">
+            <div class="brand-logo">
+                <i class="bi bi-mortarboard-fill"></i>
+            </div>
+            <h2>Teacher Portal</h2>
+            <p>Create a new account to get started</p>
+        </div>
+
+        <div class="register-card">
+            {% if error %}
+            <div class="register-alert">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <div class="card-header">
+                <h4 class="mb-0 fw-bold text-center">
+                    <i class="bi bi-person-plus-fill me-2 text-primary"></i>Teacher Registration
+                </h4>
+            </div>
+
+            <form method="post" class="mt-4">
+                <div class="form-group">
+                    <label for="name">Full Name</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person input-icon"></i>
+                        <input type="text" id="name" name="name" placeholder="Enter your full name" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-person-badge input-icon"></i>
+                        <input type="text" id="username" name="username" placeholder="Choose a username" required>
+                    </div>
+                    <div class="form-hint">Username must be unique and will be used for login</div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-envelope input-icon"></i>
+                        <input type="email" id="email" name="email" placeholder="Enter your email" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <div class="input-wrapper">
+                        <i class="bi bi-lock input-icon"></i>
+                        <input type="password" id="password" name="password" placeholder="Choose a password" required>
+                        <button type="button" class="toggle-password">
+                            <i class="bi bi-eye-slash"></i>
+                        </button>
+                    </div>
+                    <div class="password-strength">
+                        <div class="strength-meter">
+                            <div class="meter-section"></div>
+                            <div class="meter-section"></div>
+                            <div class="meter-section"></div>
+                            <div class="meter-section"></div>
+                        </div>
+                        <div class="strength-text">Password strength</div>
+                    </div>
+                </div>
+
+                <div class="terms-check">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <span class="checkmark"></span>
+                        I agree to the <a href="#" class="terms-link">Terms of Service</a> and <a href="#" class="terms-link">Privacy Policy</a>
+                    </label>
+                </div>
+
+                <button type="submit" class="register-button">
+                    <span>Create Account</span>
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="login-prompt">
+                <p>Already have an account? <a href="{{ url_for('login') }}">Sign in instead</a></p>
+            </div>
+        </div>
+
+        <div class="register-footer">
+            <p>© 2025 Teacher Portal. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary-color: #4361ee;
+        --primary-light: rgba(67, 97, 238, 0.1);
+        --text-color: #333;
+        --text-light: #6c757d;
+        --border-color: #e0e0e0;
+        --background-light: #f8f9fa;
+        --white: #ffffff;
+        --shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+        --shadow-hover: 0 8px 25px rgba(0, 0, 0, 0.1);
+        --red: #dc3545;
+        --green: #28a745;
+    }
+
+    .register-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 80vh;
+        padding: 2rem 1rem;
+    }
+
+    .register-container {
+        width: 100%;
+        max-width: 550px;
+        margin: 0 auto;
+    }
+
+    .brand-logo {
+        width: 80px;
+        height: 80px;
+        border-radius: 20px;
+        background-color: var(--primary-light);
+        color: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+        font-size: 2.5rem;
+        transform: rotate(-10deg);
+        transition: all 0.3s ease;
+    }
+
+    .brand-logo:hover {
+        transform: rotate(0deg) scale(1.05);
+    }
+
+    h2 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+
+    p {
+        color: var(--text-light);
+        font-weight: 400;
+    }
+
+    .register-card {
+        background-color: var(--white);
+        border-radius: 16px;
+        box-shadow: var(--shadow);
+        padding: 2.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .register-card:hover {
+        box-shadow: var(--shadow-hover);
+    }
+
+    .card-header {
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .register-alert {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: var(--red);
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: var(--text-color);
+    }
+
+    .form-hint {
+        font-size: 0.8125rem;
+        color: var(--text-light);
+        margin-top: 0.5rem;
+    }
+
+    .input-wrapper {
+        position: relative;
+        display: flex;
+        align-items: center;
+    }
+
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        color: var(--text-light);
+    }
+
+    .toggle-password {
+        position: absolute;
+        right: 15px;
+        background: none;
+        border: none;
+        color: var(--text-light);
+        cursor: pointer;
+        padding: 0;
+        font-size: 1rem;
+    }
+
+    .toggle-password:focus {
+        outline: none;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="email"] {
+        width: 100%;
+        padding: 0.85rem 1rem 0.85rem 2.5rem;
+        font-size: 1rem;
+        border: 1px solid var(--border-color);
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    input[type="email"]:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px var(--primary-light);
+        outline: none;
+    }
+
+    .password-strength {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: 0.75rem;
+    }
+
+    .strength-meter {
+        display: flex;
+        gap: 4px;
+    }
+
+    .meter-section {
+        height: 4px;
+        flex: 1;
+        background-color: var(--border-color);
+        border-radius: 2px;
+    }
+
+    .strength-text {
+        font-size: 0.8125rem;
+        color: var(--text-light);
+    }
+
+    .terms-check {
+        margin-bottom: 1.5rem;
+    }
+
+    .checkbox-container {
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        user-select: none;
+        font-size: 0.9375rem;
+        color: var(--text-light);
+    }
+
+    .checkbox-container input {
+        position: absolute;
+        opacity: 0;
+        height: 0;
+        width: 0;
+        cursor: pointer;
+    }
+
+    .checkmark {
+        height: 18px;
+        width: 18px;
+        min-width: 18px;
+        background-color: var(--white);
+        border: 2px solid var(--border-color);
+        border-radius: 4px;
+        margin-right: 8px;
+        margin-top: 2px;
+        position: relative;
+        transition: all 0.2s;
+    }
+
+    .checkbox-container:hover input ~ .checkmark {
+        border-color: var(--primary-color);
+    }
+
+    .checkbox-container input:checked ~ .checkmark {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .checkmark:after {
+        content: "";
+        position: absolute;
+        display: none;
+    }
+
+    .checkbox-container input:checked ~ .checkmark:after {
+        display: block;
+        left: 5px;
+        top: 1px;
+        width: 5px;
+        height: 10px;
+        border: solid white;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+    }
+
+    .terms-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+    .terms-link:hover {
+        text-decoration: underline;
+    }
+
+    .register-button {
+        width: 100%;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.85rem;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .register-button:hover {
+        background-color: #3351dd;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(67, 97, 238, 0.3);
+    }
+
+    .register-button i {
+        transition: transform 0.3s ease;
+    }
+
+    .register-button:hover i {
+        transform: translateX(4px);
+    }
+
+    .login-prompt {
+        text-align: center;
+        margin-top: 1.5rem;
+        color: var(--text-light);
+        font-size: 0.9375rem;
+    }
+
+    .login-prompt a {
+        color: var(--primary-color);
+        font-weight: 500;
+        text-decoration: none;
+    }
+
+    .login-prompt a:hover {
+        text-decoration: underline;
+    }
+
+    .register-footer {
+        text-align: center;
+        margin-top: 2rem;
+        color: var(--text-light);
+        font-size: 0.875rem;
+    }
+
+    @media (max-width: 576px) {
+        .register-card {
+            padding: 2rem 1.5rem;
+        }
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Password visibility toggle
+        const togglePassword = document.querySelector('.toggle-password');
+        const passwordInput = document.querySelector('#password');
+        
+        togglePassword.addEventListener('click', function() {
+            const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            passwordInput.setAttribute('type', type);
+            this.querySelector('i').classList.toggle('bi-eye');
+            this.querySelector('i').classList.toggle('bi-eye-slash');
+        });
+        
+        // Password strength indicator
+        const strengthMeter = document.querySelectorAll('.meter-section');
+        const strengthText = document.querySelector('.strength-text');
+        
+        passwordInput.addEventListener('input', function() {
+            const value = this.value;
+            let strength = 0;
+            
+            if (value.length >= 8) strength++;
+            if (value.match(/[A-Z]/)) strength++;
+            if (value.match(/[0-9]/)) strength++;
+            if (value.match(/[^A-Za-z0-9]/)) strength++;
+            
+            strengthMeter.forEach((section, index) => {
+                section.style.backgroundColor = index < strength 
+                    ? getStrengthColor(strength) 
+                    : getComputedStyle(document.documentElement).getPropertyValue('--border-color');
+            });
+            
+            strengthText.textContent = getStrengthText(strength);
+            strengthText.style.color = getStrengthColor(strength);
+        });
+        
+        function getStrengthColor(strength) {
+            switch (strength) {
+                case 0: return '#dc3545';
+                case 1: return '#dc3545';
+                case 2: return '#ffc107';
+                case 3: return '#17a2b8';
+                case 4: return '#28a745';
+            }
+        }
+        
+        function getStrengthText(strength) {
+            switch (strength) {
+                case 0: return 'Password is too weak';
+                case 1: return 'Weak password';
+                case 2: return 'Medium strength';
+                case 3: return 'Strong password';
+                case 4: return 'Very strong password';
+            }
+        }
+        
+        // Input field animations
+        const inputs = document.querySelectorAll('input');
+        inputs.forEach(input => {
+            input.addEventListener('focus', function() {
+                this.parentElement.style.transform = 'translateY(-3px)';
+                this.parentElement.style.transition = 'all 0.3s ease';
+            });
+            
+            input.addEventListener('blur', function() {
+                this.parentElement.style.transform = 'none';
+            });
+        });
+    });
+</script>
+{% endblock %}

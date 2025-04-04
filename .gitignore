@@ -1,0 +1,78 @@
+# Python virtual environment
+venv/
+env/
+.venv/
+ENV/
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Flask
+instance/
+.webassets-cache
+flask_session/
+
+# Environment variables
+.env
+.flaskenv
+env.bak/
+
+# Firebase credentials
+firebase.json
+firebase-*.json
+serviceAccount.json
+**/firebase/*.json
+
+# Log files
+*.log
+logs/
+
+# Database files
+*.sqlite
+*.db
+
+# Distribution / packaging
+.Python
+dist/
+build/
+*.egg-info/
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+*.sublime-workspace
+*.sublime-project
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# Local development settings
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Temporary files
+tmp/
+temp/
+
+# Excel export files
+*.xlsx
+*.xls
+*.csv
+
+# Cache files
+.cache/
+cache/

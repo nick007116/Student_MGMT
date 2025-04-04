@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Edit Student - Teacher Portal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 fade-in">
+    <h2 class="fw-bold text-primary"><i class="bi bi-person-lines-fill me-2"></i>Edit Student Profile</h2>
+    <a href="{{ url_for('students') }}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left me-2"></i>Back to Students
+    </a>
+</div>
+
+<div class="card border-0 shadow-sm slide-up">
+    <div class="card-header bg-light py-3 border-0">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i>Student Information</h5>
+    </div>
+    <div class="card-body p-4">
+        <form method="post">
+            <div class="row g-4">
+                <!-- Personal Information Section -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-shape bg-primary bg-opacity-10 text-primary rounded-circle p-2 me-3">
+                            <i class="bi bi-person"></i>
+                        </div>
+                        <h6 class="text-primary fw-bold mb-0">Personal Details</h6>
+                    </div>
+                    <hr class="mt-2 mb-4">
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="name" class="form-label fw-medium mb-2">Full Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="name" name="name" value="{{ student.name }}" required>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="roll_number" class="form-label fw-medium mb-2">Roll Number <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="roll_number" name="roll_number" value="{{ student.roll_number }}" required>
+                    </div>
+                </div>
+                
+                <!-- Academic Information Section -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-shape bg-success bg-opacity-10 text-success rounded-circle p-2 me-3">
+                            <i class="bi bi-book"></i>
+                        </div>
+                        <h6 class="text-success fw-bold mb-0">Academic Information</h6>
+                    </div>
+                    <hr class="mt-2 mb-4">
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="department" class="form-label fw-medium mb-2">Board</label>
+                        <input type="text" class="form-control" id="department" name="department" value="{{ student.department }}">
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="class_name" class="form-label fw-medium mb-2">Class</label>
+                        <input type="text" class="form-control" id="class_name" name="class_name" value="{{ student.class_name }}">
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="school" class="form-label fw-medium mb-2">School</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-bank"></i>
+                            </span>
+                            <input type="text" class="form-control" id="school" name="school" 
+                                   value="{{ student.school }}" placeholder="E.g., Central High School">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contact Information Section -->
+                <div class="col-12">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="icon-shape bg-info bg-opacity-10 text-info rounded-circle p-2 me-3">
+                            <i class="bi bi-chat-dots"></i>
+                        </div>
+                        <h6 class="text-info fw-bold mb-0">Contact Information</h6>
+                    </div>
+                    <hr class="mt-2 mb-4">
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="phone_number" class="form-label fw-medium mb-2">Phone Number</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-telephone"></i>
+                            </span>
+                            <input type="text" class="form-control" id="phone_number" name="phone_number" value="{{ student.phone_number }}">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="email" class="form-label fw-medium mb-2">Email Address</label>
+                        <div class="input-group">
+                            <span class="input-group-text">
+                                <i class="bi bi-envelope"></i>
+                            </span>
+                            <input type="email" class="form-control" id="email" name="email" value="{{ student.email }}">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="my-4">
+            
+            <div class="d-flex justify-content-between align-items-center">
+                <a href="{{ url_for('students') }}" class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-2"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-primary px-4">
+                    <i class="bi bi-save me-2"></i>Save Changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="mt-4 slide-up-delay">
+    <div class="card border-0 shadow-sm danger-card">
+        <div class="card-header bg-danger bg-opacity-10 border-0">
+            <h5 class="mb-0 text-danger fw-bold"><i class="bi bi-exclamation-triangle me-2"></i>Danger Zone</h5>
+        </div>
+        <div class="card-body">
+            <p>Removing a student will delete all their associated records, assignments, and grades.</p>
+            <button type="button" class="btn btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                <i class="bi bi-trash me-2"></i>Delete Student
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title"><i class="bi bi-trash me-2"></i>Delete Student</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <div class="empty-state-icon">
+                        <i class="bi bi-exclamation-diamond"></i>
+                    </div>
+                </div>
+                <p>Are you sure you want to delete <strong>{{ student.name }}</strong>?</p>
+                <p class="text-danger"><small><i class="bi bi-info-circle me-1"></i>This action cannot be undone and will remove all records associated with this student.</small></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                <a href="{{ url_for('delete_student', student_id=student.id) }}" class="btn btn-danger">
+                    <i class="bi bi-trash me-1"></i>Delete Permanently
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Simplified styles with minimum hover effects */
+    .icon-shape {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    
+    .icon-shape i {
+        font-size: 1.2rem;
+    }
+    
+    /* Card styling - no hover transform */
+    .card {
+        border-radius: 10px;
+    }
+    
+    /* Simple button hover effect */
+    .btn {
+        border-radius: 8px;
+        padding: 0.6rem 1.5rem;
+        font-weight: 500;
+        transition: transform 0.2s ease;
+    }
+    
+    .btn:hover {
+        transform: translateY(-2px);
+    }
+    
+    /* Danger card styling */
+    .danger-card {
+        border-left: 3px solid #dc3545;
+    }
+    
+    /* Form controls - simplified */
+    .form-control, .input-group-text {
+        border-radius: 8px;
+        padding: 0.6rem 0.8rem;
+    }
+    
+    .form-control:focus {
+        border-color: #4361ee;
+        box-shadow: 0 0 0 0.25rem rgba(67, 97, 238, 0.15);
+    }
+    
+    .input-group-text {
+        background-color: #f8f9fa;
+    }
+    
+    /* Empty state icon for modal */
+    .empty-state-icon {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background-color: rgba(220, 53, 69, 0.1);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto;
+        border: 2px dashed rgba(220, 53, 69, 0.2);
+    }
+    
+    .empty-state-icon i {
+        font-size: 2.5rem;
+        color: #dc3545;
+    }
+    
+    /* Basic animations */
+    .slide-up {
+        animation: slideUp 0.5s ease forwards;
+    }
+    
+    .slide-up-delay {
+        animation: slideUp 0.5s ease 0.2s forwards;
+        opacity: 0;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease forwards;
+    }
+    
+    @keyframes slideUp {
+        from {
+            transform: translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+</style>
+{% endblock %}
