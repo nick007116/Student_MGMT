@@ -289,12 +289,51 @@
         // Track total number of assignments
         const totalAssignments = document.querySelectorAll('.assignment-table tbody tr').length;
         
+        // Sort the tables by roll number
+        sortStudentsByRollNumber();
+        
         // Get filter and search elements
         const searchInput = document.getElementById('assignmentSearch');
         const dateFilter = document.getElementById('dateFilter');
         const statusFilter = document.getElementById('statusFilter');
         const resetButton = document.getElementById('resetFilters');
         const assignmentCount = document.getElementById('assignmentCount');
+        
+        // Function to sort any student tables by roll number
+        function sortStudentsByRollNumber() {
+            // This is a general function to sort any tables with student data by roll number
+            // It can be called on page load and after filtering
+            
+            const tables = document.querySelectorAll('table.assignment-table, table.student-table');
+            tables.forEach(table => {
+                const tbody = table.querySelector('tbody');
+                if (!tbody) return;
+                
+                const rows = Array.from(tbody.querySelectorAll('tr'));
+                
+                // Sort rows by roll number if they have data-student-roll attribute
+                rows.sort((a, b) => {
+                    const rollA = a.getAttribute('data-student-roll') || '';
+                    const rollB = b.getAttribute('data-student-roll') || '';
+                    
+                    if (!rollA || !rollB) return 0;
+                    
+                    // If roll numbers are numeric, compare as numbers
+                    const numA = parseInt(rollA);
+                    const numB = parseInt(rollB);
+                    
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        return numA - numB;
+                    }
+                    
+                    // Otherwise compare as strings
+                    return rollA.localeCompare(rollB);
+                });
+                
+                // Re-append rows in sorted order
+                rows.forEach(row => tbody.appendChild(row));
+            });
+        }
         
         // Function to filter table rows
         function filterTable() {
@@ -347,6 +386,9 @@
             if (assignmentCount) {
                 assignmentCount.textContent = visibleCount;
             }
+            
+            // After filtering, re-sort by roll number if needed
+            sortStudentsByRollNumber();
         }
         
         // Attach event listeners to filters
@@ -361,6 +403,9 @@
                 if (dateFilter) dateFilter.value = 'all';
                 if (statusFilter) statusFilter.value = 'all';
                 filterTable();
+                
+                // Re-sort after resetting filters
+                sortStudentsByRollNumber();
             });
         }
         

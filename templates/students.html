@@ -289,6 +289,9 @@
             return new bootstrap.Tooltip(tooltipTriggerEl)
         });
         
+        // Sort the table rows by roll number
+        sortTableByRollNumber();
+        
         // Track total number of students
         const totalStudents = document.querySelectorAll('.student-table tbody tr').length;
         
@@ -298,6 +301,34 @@
         const boardFilter = document.getElementById('boardFilter');
         const resetButton = document.getElementById('resetFilters');
         const studentCount = document.getElementById('studentCount');
+        
+        // Function to sort table by roll number
+        function sortTableByRollNumber() {
+            const tableBody = document.querySelector('.student-table tbody');
+            if (!tableBody) return;
+            
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            
+            // Sort rows by roll number in ascending order
+            rows.sort((a, b) => {
+                const rollA = a.getAttribute('data-student-roll') || '';
+                const rollB = b.getAttribute('data-student-roll') || '';
+                
+                // If roll numbers are numeric, compare as numbers
+                const numA = parseInt(rollA);
+                const numB = parseInt(rollB);
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return numA - numB;
+                }
+                
+                // Otherwise compare as strings
+                return rollA.localeCompare(rollB);
+            });
+            
+            // Re-append rows in sorted order
+            rows.forEach(row => tableBody.appendChild(row));
+        }
         
         // Function to filter table rows
         function filterTable() {
@@ -352,6 +383,9 @@
                 classFilter.value = '';
                 boardFilter.value = '';
                 filterTable();
+                
+                // Re-sort the table after resetting filters
+                sortTableByRollNumber();
             });
         }
         

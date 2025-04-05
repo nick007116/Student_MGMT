@@ -52,7 +52,7 @@
                     <div class="mt-3">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <span class="small text-muted">Completion</span>
-                            {% set completed_count = status_dict.values()|selectattr('completed')|list|length %}
+                            {% set completed_count = status_dict.values()|selectattr('completed', 'eq', true)|list|length %}
                             {% set progress = (completed_count / students|length * 100)|round|int if students|length > 0 else 0 %}
                             <span class="small fw-medium">{{ progress }}%</span>
                         </div>
@@ -62,10 +62,10 @@
                         </div>
                         <div class="d-flex justify-content-between mt-2">
                             <small class="text-muted">{{ completed_count }} / {{ students|length }} completed</small>
-                            {% if assignment.due_date < now and progress < 100 %}
-                            <span class="badge bg-danger pulse-animation">Past Due</span>
-                            {% elif assignment.due_date < now %}
+                            {% if completed_count == students|length %}
                             <span class="badge bg-success badge-glow">Completed</span>
+                            {% elif assignment.due_date < now %}
+                            <span class="badge bg-danger pulse-animation">Past Due</span>
                             {% else %}
                             <span class="badge bg-primary badge-glow">In Progress</span>
                             {% endif %}
@@ -105,7 +105,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for student in students %}
+                    {% for student in students|sort(attribute='roll_number') %}
                     {% set status = status_dict.get(student.id) %}
                     <tr class="row-animate">
                         <td class="ps-4">
@@ -447,6 +447,9 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Sort table by roll number
+        sortTableByRollNumber();
+        
         // Add staggered animation to table rows
         const tableRows = document.querySelectorAll('.row-animate');
         tableRows.forEach((row, index) => {
@@ -460,21 +463,84 @@
             }, 100 + (index * 50));
         });
         
+        // Function to sort table by roll number
+        function sortTableByRollNumber() {
+            const tableBody = document.querySelector('.assignment-table tbody');
+            if (!tableBody) return;
+            
+            const rows = Array.from(tableBody.querySelectorAll('tr'));
+            
+            // Sort rows by roll number in ascending order
+            rows.sort((a, b) => {
+                const rollA = a.querySelector('td:nth-child(2)').textContent.trim();
+                const rollB = b.querySelector('td:nth-child(2)').textContent.trim();
+                
+                // If roll numbers are numeric, compare as numbers
+                const numA = parseInt(rollA);
+                const numB = parseInt(rollB);
+                
+                if (!isNaN(numA) && !isNaN(numB)) {
+                    return numA - numB;
+                }
+                
+                // Otherwise compare as strings
+                return rollA.localeCompare(rollB);
+            });
+            
+            // Re-append rows in sorted order
+            rows.forEach(row => tableBody.appendChild(row));
+        }
+        
         // Mark all complete button functionality
         const markAllBtn = document.getElementById('markAllBtn');
         if (markAllBtn) {
             markAllBtn.addEventListener('click', function() {
                 const uncheckedCheckboxes = document.querySelectorAll('.status-form .form-check-input:not(:checked)');
-                console.log('Found', uncheckedCheckboxes.length, 'unchecked checkboxes');
                 
                 if (uncheckedCheckboxes.length > 0) {
                     if (confirm('Mark all assignments as complete?')) {
+                        // Show loading indicator
+                        markAllBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+                        markAllBtn.disabled = true;
+                        
+                        // Process each checkbox sequentially using promises
+                        let promise = Promise.resolve();
+                        let completedCount = 0;
+                        const totalForms = uncheckedCheckboxes.length;
+                        
                         uncheckedCheckboxes.forEach((checkbox, index) => {
-                            setTimeout(() => {
+                            promise = promise.then(() => {
                                 checkbox.checked = true;
-                                console.log('Setting checkbox to checked:', checkbox.id);
-                                animateCheckChange(checkbox);
-                            }, index * 200);
+                                
+                                return new Promise((resolve) => {
+                                    // Submit the form
+                                    const form = checkbox.form;
+                                    const formData = new FormData(form);
+                                    formData.append('completed', 'on'); // Explicitly add the completed parameter
+                                    
+                                    fetch(form.action, {
+                                        method: 'POST',
+                                        body: formData,
+                                        headers: {
+                                            'X-Requested-With': 'XMLHttpRequest'
+                                        }
+                                    })
+                                    .then(response => {
+                                        completedCount++;
+                                        // Add a small delay between submissions
+                                        setTimeout(resolve, 500);
+                                    })
+                                    .catch(error => {
+                                        setTimeout(resolve, 500);
+                                    });
+                                });
+                            });
+                        });
+                        
+                        // When all forms are processed, reload the page
+                        promise.then(() => {
+                            // Force a complete page reload to ensure all status updates are reflected
+                            window.location.href = window.location.href;
                         });
                     }
                 } else {
@@ -483,51 +549,55 @@
             });
         }
         
-        // Add hover effect on table rows to show action buttons better
-        // FIXED: Renamed variable to avoid conflict with earlier declaration
-        document.querySelectorAll('.assignment-table tbody tr').forEach(row => {
-            row.addEventListener('mouseenter', function() {
-                const checkbox = this.querySelector('.form-check-input');
-                if (checkbox && !checkbox.checked) {
-                    checkbox.classList.add('animate__animated', 'animate__heartBeat');
+        // Directly submit form when checkbox changes
+        document.querySelectorAll('.form-check-input').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                // Update the UI immediately to give feedback
+                const statusBadge = checkbox.closest('tr').querySelector('.badge');
+                if (checkbox.checked && statusBadge) {
+                    // Replace status badge with completed badge
+                    statusBadge.className = 'badge bg-success-subtle text-success px-3 py-2 fade-in';
+                    statusBadge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Completed';
+                    
+                    // Update the completion counter and progress bar
+                    updateCompletionStatus();
                 }
-            });
-            
-            row.addEventListener('mouseleave', function() {
-                const checkbox = this.querySelector('.form-check-input');
-                if (checkbox) {
-                    checkbox.classList.remove('animate__animated', 'animate__heartBeat');
-                }
+                checkbox.form.submit();
             });
         });
-    });
-    
-    // Animate checkbox changes
-    function animateCheckChange(checkbox) {
-        const row = checkbox.closest('tr');
-        const statusBadge = row.querySelector('.badge');
         
-        if (checkbox.checked) {
-            checkbox.style.transform = 'scale(1.2)';
+        // Function to update completion status without reloading
+        function updateCompletionStatus() {
+            const totalStudents = document.querySelectorAll('.status-form').length;
+            const completedCount = document.querySelectorAll('.status-form .form-check-input:checked').length;
+            const progressPercentage = Math.round((completedCount / totalStudents) * 100);
             
-            if (statusBadge && !statusBadge.classList.contains('text-success')) {
-                statusBadge.style.opacity = '0';
-                setTimeout(() => {
-                    const newBadge = document.createElement('span');
-                    newBadge.className = 'badge bg-success-subtle text-success px-3 py-2 fade-in';
-                    newBadge.innerHTML = '<i class="bi bi-check-circle me-1"></i>Completed';
-                    statusBadge.parentNode.replaceChild(newBadge, statusBadge);
-                }, 200);
+            // Update the counter text
+            const counterElement = document.querySelector('.d-flex.justify-content-between.mt-2 small.text-muted');
+            if (counterElement) {
+                counterElement.textContent = `${completedCount} / ${totalStudents} completed`;
             }
             
-            // FIXED: Allow animation to complete before submitting the form
-            setTimeout(() => {
-                checkbox.style.transform = 'scale(1)';
-                checkbox.form.submit();
-            }, 400);
-        } else {
-            checkbox.form.submit();
+            // Update the progress bar
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                progressBar.style.width = `${progressPercentage}%`;
+                progressBar.setAttribute('aria-valuenow', progressPercentage);
+            }
+            
+            // Update the percentage text
+            const percentageText = document.querySelector('.small.fw-medium');
+            if (percentageText) {
+                percentageText.textContent = `${progressPercentage}%`;
+            }
+            
+            // Update the status badge
+            const statusBadge = document.querySelector('.d-flex.justify-content-between.mt-2 .badge');
+            if (statusBadge && completedCount === totalStudents) {
+                statusBadge.className = 'badge bg-success badge-glow';
+                statusBadge.textContent = 'Completed';
+            }
         }
-    }
+    });
 </script>
 {% endblock %}

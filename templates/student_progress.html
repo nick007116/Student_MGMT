@@ -19,14 +19,15 @@
                 <h5 class="mb-0 fw-bold">Find Student</h5>
             </div>
             <div class="card-body p-4">
-                <form method="post" action="{{ url_for('student_progress') }}" id="studentForm">
+                <!-- Update the form to handle GET requests only for better compatibility -->
+                <form method="get" action="{{ url_for('student_progress') }}" id="studentForm">
                     <div class="mb-3">
                         <label for="student_id" class="form-label">Select Student</label>
                         <select class="form-select" id="student_id" name="student_id" required>
                             <option value="">Choose a student...</option>
-                            {% for student in students %}
+                            {% for student in students|sort(attribute='roll_number') %}
                             <option value="{{ student.id }}" {% if selected_student and selected_student.id == student.id %}selected{% endif %}>
-                                {{ student.name }} ({{ student.roll_number }})
+                                {{ student.roll_number }} - {{ student.name }}
                             </option>
                             {% endfor %}
                         </select>
@@ -105,10 +106,10 @@
                 <div class="row align-items-center">
                     <div class="col-lg-4 text-center mb-3 mb-lg-0">
                         <div class="progress-circle mx-auto" style="--completion: {{ completion_rate }};">
-                                    <div class="progress-circle-inner d-flex align-items-center justify-content-center">
-                                        <span class="completion-percentage fw-bold">{{ completion_rate }}%</span>
-                                    </div>
-                                </div>
+                            <div class="progress-circle-inner d-flex align-items-center justify-content-center">
+                                <span class="completion-percentage fw-bold">{{ completion_rate }}%</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="col-lg-8">
                         <div class="progress-stats">
@@ -197,8 +198,13 @@
                                     </div>
                                 </td>
                                 <td>
+                                    {% if assignment.due_date %}
                                     <span class="fw-medium">{{ assignment.due_date.strftime('%b %d, %Y') }}</span>
-                                    <div><small class="text-muted">{{ assignment.due_date.strftime('%I:%M %p') }}</small></div>
+                                    <div><small class="text-muted">{{ assignment.due_date.strftime('%I:%M %p') }}</small>
+                                    </div>
+                                    {% else %}
+                                    <span class="text-muted">No due date</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if assignment.is_completed %}
@@ -564,6 +570,16 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
+        // Enable automatic form submission when student is selected
+        const studentSelect = document.getElementById('student_id');
+        if (studentSelect) {
+            studentSelect.addEventListener('change', function() {
+                if (this.value) {
+                    document.getElementById('studentForm').submit();
+                }
+            });
+        }
+        
         // Filter buttons functionality
         const filterAllBtn = document.getElementById('filterAllBtn');
         const filterCompletedBtn = document.getElementById('filterCompletedBtn');

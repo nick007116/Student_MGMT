@@ -139,14 +139,19 @@
                                 <label class="form-label">Select Students</label>
                                 <div class="student-select-container p-3 border rounded" style="max-height: 200px; overflow-y: auto;">
                                     {% if all_students %}
-                                        {% for student in all_students %}
+                                        {% for student in all_students|sort(attribute='roll_number') %}
                                         <div class="form-check mb-2">
-                                            <input class="form-check-input" type="checkbox" name="student_targets" value="{{ student.id }}" id="student{{ student.id }}">
+                                            <input class="form-check-input" type="checkbox" name="student_targets" 
+                                                   value="{{ student.id }}" id="student{{ student.id }}">
                                             <label class="form-check-label d-flex align-items-center" for="student{{ student.id }}">
-                                                <div class="avatar-xs bg-primary bg-opacity-10 text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px; font-size: 12px;">
+                                                <div class="avatar-xs bg-primary bg-opacity-10 text-primary rounded-circle me-2 d-flex align-items-center justify-content-center" 
+                                                     style="width: 28px; height: 28px; font-size: 12px;">
                                                     {{ student.name[0] | upper if student.name else '?' }}
                                                 </div>
-                                                <span>{{ student.name }} {% if student.roll_number %}({{ student.roll_number }}){% endif %}</span>
+                                                <span>
+                                                    {% if student.roll_number %}#{{ student.roll_number }} - {% endif %}
+                                                    {{ student.name }}
+                                                </span>
                                                 {% if student.class_name %}
                                                 <span class="badge bg-light text-dark ms-2">{{ student.class_name }}</span>
                                                 {% endif %}
@@ -334,6 +339,32 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('input[name="student_targets"]').forEach(checkbox => {
             checkbox.checked = false;
         });
+    });
+
+    // Function to sort students by roll number
+    function sortStudentsList() {
+        const container = document.querySelector('.student-select-container');
+        if (!container) return;
+
+        const items = Array.from(container.querySelectorAll('.form-check'));
+        
+        items.sort((a, b) => {
+            const rollA = a.querySelector('span').textContent.match(/#(\d+)/)?.[1] || '0';
+            const rollB = b.querySelector('span').textContent.match(/#(\d+)/)?.[1] || '0';
+            return parseInt(rollA) - parseInt(rollB);
+        });
+
+        items.forEach(item => container.appendChild(item));
+    }
+
+    // Sort students when page loads and when target type changes
+    sortStudentsList();
+
+    // Call sort when switching to specific students option
+    document.getElementById('specificStudents')?.addEventListener('change', function() {
+        if (this.checked) {
+            setTimeout(sortStudentsList, 100);
+        }
     });
 });
 </script>

@@ -73,6 +73,10 @@ def make_timezone_naive(obj):
     else:
         return obj
 
+def sort_students_by_roll(students_data):
+    """Sort students by roll number"""
+    return sorted(students_data, key=lambda x: x.get('roll_number', ''))
+
 # Initialize Flask app
 app = Flask(__name__)
 load_dotenv()  # Load environment variables from .env file
@@ -258,6 +262,9 @@ def students():
     students_ref = db.collection('students').where('teacher_id', '==', teacher_id)
     students_data = [{'id': doc.id, **doc.to_dict()} for doc in students_ref.get()]
     
+    # Sort students by roll number
+    students_data = sort_students_by_roll(students_data)
+    
     return render_template('students.html', students=students_data)
 
 @app.route('/add_student', methods=['GET', 'POST'])
@@ -417,6 +424,9 @@ def add_assignment():
     # Get all students for this teacher to populate the specific students section
     students_ref = db.collection('students').where('teacher_id', '==', teacher_id)
     all_students = [{'id': doc.id, **doc.to_dict()} for doc in students_ref.get()]
+    
+    # Sort students by roll number
+    all_students = sort_students_by_roll(all_students)
     
     # Get class and department lists for dropdowns
     class_list = sorted(list(set(student.get('class_name', '') for student in all_students if student.get('class_name'))))
@@ -632,96 +642,175 @@ def delete_assignment(assignment_id):
 
 @app.route('/student_progress', methods=['GET', 'POST'])
 @login_required
-def student_progress():  # Remove the student_id parameter
+def student_progress():
     teacher_id = session.get('teacher_id')
     
-    # Get all students for this teacher
+    # Get all students for this teacher and sort by roll number
     students_ref = db.collection('students').where('teacher_id', '==', teacher_id)
     students_data = [{'id': doc.id, **doc.to_dict()} for doc in students_ref.get()]
+    
+    # Sort students by roll number
+    students_data = sort_students_by_roll(students_data)
     
     selected_student = None
     assignments_data = []
     completion_rate = 0
     
-    if request.method == 'POST':
-        student_id = request.form.get('student_id')
-        
-        if student_id:
-            # Get the selected student
+    # Unified parameter retrieval from both GET and POST
+    student_id = request.args.get('student_id') or request.form.get('student_id')
+    
+    if student_id:
+        try:
+            # Get the selected student with error handling
             student_doc = db.collection('students').document(student_id).get()
-            if student_doc.exists:  # Fixed: Using property instead of method call
+            
+            if student_doc.exists:
                 selected_student = {'id': student_doc.id, **student_doc.to_dict()}
+                
+                # Get all submissions for this student first to avoid multiple queries
+                submissions_ref = db.collection('submissions').where('student_id', '==', student_id).get()
+                
+                # Create a lookup dictionary for quick access to submission data
+                submissions_lookup = {}
+                for sub_doc in submissions_ref:
+                    sub_data = {'id': sub_doc.id, **sub_doc.to_dict()}
+                    assignment_id = sub_data.get('assignment_id')
+                    
+                    # Convert timestamps
+                    if 'submission_date' in sub_data and sub_data['submission_date']:
+                        sub_data['submission_date'] = convert_firebase_timestamp(sub_data['submission_date'])
+                    
+                    if 'updated_at' in sub_data and sub_data['updated_at']:
+                        sub_data['updated_at'] = convert_firebase_timestamp(sub_data['updated_at'])
+                    
+                    if 'created_at' in sub_data and sub_data['created_at']:
+                        sub_data['created_at'] = convert_firebase_timestamp(sub_data['created_at'])
+                    
+                    # Store in lookup with assignment_id as key
+                    submissions_lookup[assignment_id] = sub_data
                 
                 # Get all assignments for this teacher
                 assignments_ref = db.collection('assignments').where('teacher_id', '==', teacher_id).get()
                 
                 for assignment_doc in assignments_ref:
-                    assignment = {'id': assignment_doc.id, **assignment_doc.to_dict()}
-                    
-                    # Convert timestamps
-                    if 'due_date' in assignment and assignment['due_date']:
-                        assignment['due_date'] = convert_firebase_timestamp(assignment['due_date'])
-                    
-                    # Check if assignment applies to this student
-                    target_type = assignment.get('target_type', 'all')
-                    target_value = assignment.get('target_value')
-                    applies_to_student = False
-                    
-                    if target_type == 'all':
-                        applies_to_student = True
-                    elif target_type == 'class' and target_value == selected_student.get('class_name'):
-                        applies_to_student = True
-                    elif target_type == 'department' and target_value == selected_student.get('department'):
-                        applies_to_student = True
-                    elif target_type == 'school' and target_value == selected_student.get('school'):
-                        applies_to_student = True
-                    elif target_type == 'specific' and student_id in target_value:
-                        applies_to_student = True
-                    
-                    if applies_to_student:
-                        # Get submission for this student and assignment
-                        submission_ref = db.collection('submissions').where('assignment_id', '==', assignment_doc.id).where('student_id', '==', student_id).limit(1).get()
+                    try:
+                        assignment = {'id': assignment_doc.id, **assignment_doc.to_dict()}
                         
-                        submission = None
-                        for sub_doc in submission_ref:
-                            submission = {'id': sub_doc.id, **sub_doc.to_dict()}
+                        # Ensure due_date is properly converted
+                        if 'due_date' in assignment and assignment['due_date']:
+                            try:
+                                # Handle numeric timestamp
+                                if isinstance(assignment['due_date'], (int, float)):
+                                    assignment['due_date'] = datetime.fromtimestamp(assignment['due_date'])
+                                # Handle Firestore timestamp
+                                elif hasattr(assignment['due_date'], 'datetime'):
+                                    assignment['due_date'] = assignment['due_date'].datetime()
+                            except Exception as e:
+                                print(f"Error converting due_date for assignment {assignment_doc.id}: {e}")
+                                # If conversion fails, use current time as fallback
+                                assignment['due_date'] = datetime.now()
+                        
+                        # Check if assignment applies to this student
+                        target_type = assignment.get('target_type', 'all')
+                        target_value = assignment.get('target_value')
+                        applies_to_student = False
+                        
+                        if target_type == 'all':
+                            applies_to_student = True
+                        elif target_type == 'class' and target_value == selected_student.get('class_name'):
+                            applies_to_student = True
+                        elif target_type == 'department' and target_value == selected_student.get('department'):
+                            applies_to_student = True
+                        elif target_type == 'school' and target_value == selected_student.get('school'):
+                            applies_to_student = True
+                        elif target_type == 'specific' and isinstance(target_value, list) and student_id in target_value:
+                            applies_to_student = True
+                        
+                        if applies_to_student:
+                            # First create a base assignment object with default values
+                            assignment_details = {
+                                'id': assignment['id'],
+                                'title': assignment['title'],
+                                'description': assignment.get('description', ''),
+                                'due_date': assignment.get('due_date'),
+                                'points': assignment.get('points', 100),
+                                'status': 'pending',
+                                'score': None,
+                                'feedback': None,
+                                'submission_date': None,
+                                'is_completed': False,
+                                'is_overdue': False
+                            }
                             
-                            # Convert submission timestamps
-                            if 'updated_at' in submission and submission['updated_at']:
-                                submission['updated_at'] = convert_firebase_timestamp(submission['updated_at'])
-                        
-                        # If submission exists, add details to assignment
-                        if submission:
-                            assignment['status'] = submission.get('status', 'pending')
-                            assignment['score'] = submission.get('score')
-                            assignment['feedback'] = submission.get('feedback')
-                            assignment['submission_date'] = submission.get('updated_at')
-                            assignment['is_completed'] = submission.get('status') == 'completed'
-                        else:
-                            # Create placeholder submission if none exists
-                            assignment['status'] = 'pending'
-                            assignment['score'] = None
-                            assignment['feedback'] = None
-                            assignment['is_completed'] = False
-                        
-                        # Add overdue flag
-                        if assignment['due_date'] and not assignment['is_completed']:
-                            assignment['is_overdue'] = assignment['due_date'] < datetime.now()
-                        else:
-                            assignment['is_overdue'] = False
+                            # Check if we have a submission in our lookup
+                            submission = submissions_lookup.get(assignment_doc.id)
                             
-                        assignments_data.append(assignment)
+                            if submission:
+                                # Set the submission date value
+                                submission_date = submission.get('submission_date') or submission.get('updated_at')
+                                
+                                # Update assignment details with submission data
+                                assignment_details.update({
+                                    'status': submission.get('status', 'pending'),
+                                    'score': submission.get('score'),
+                                    'feedback': submission.get('feedback'),
+                                    'submission_date': submission_date,
+                                    # Critical fix: properly check the status exactly
+                                    'is_completed': submission.get('status') == 'completed'
+                                })
+                            else:
+                                # Create a default submission if none exists
+                                new_submission = {
+                                    'assignment_id': assignment_doc.id,
+                                    'student_id': student_id,
+                                    'teacher_id': teacher_id,
+                                    'status': 'pending',
+                                    'score': None,
+                                    'feedback': None,
+                                    'created_at': firestore.SERVER_TIMESTAMP
+                                }
+                                
+                                # Add to Firestore
+                                db.collection('submissions').add(new_submission)
+                            
+                            # Add overdue flag with proper error handling
+                            if assignment_details.get('due_date') and not assignment_details.get('is_completed', False):
+                                try:
+                                    assignment_details['is_overdue'] = assignment_details['due_date'] < datetime.now()
+                                except Exception as e:
+                                    print(f"Error setting overdue flag: {e}")
+                                    assignment_details['is_overdue'] = False
+                            
+                            assignments_data.append(assignment_details)
+                    except Exception as e:
+                        print(f"Error processing assignment {assignment_doc.id}: {e}")
+                
+                # Sort assignments by due date (newest first)
+                try:
+                    assignments_data.sort(key=lambda x: x.get('due_date') or datetime.max, reverse=True)
+                except Exception as e:
+                    print(f"Error sorting assignments: {e}")
                 
                 # Calculate completion rate
                 if assignments_data:
                     completed = sum(1 for a in assignments_data if a.get('is_completed', False))
-                    completion_rate = (completed / len(assignments_data)) * 100 if len(assignments_data) > 0 else 0
+                    completion_rate = round((completed / len(assignments_data)) * 100) if len(assignments_data) > 0 else 0
+        except Exception as e:
+            import traceback
+            print(f"Error in student progress processing: {e}")
+            print(traceback.format_exc())
+            flash(f"An error occurred: {str(e)}", "danger")
     
-    return render_template('student_progress.html', 
-                          students=students_data,
-                          selected_student=selected_student,
-                          assignments_data=assignments_data,
-                          completion_rate=completion_rate)
+    # Ensure all data is safe for the template
+    context = {
+        'students': students_data,
+        'selected_student': selected_student,
+        'assignments_data': assignments_data,
+        'completion_rate': completion_rate,
+        'now': datetime.now()
+    }
+    
+    return render_template('student_progress.html', **context)
 
 @app.route('/assignment_status/<assignment_id>')
 @login_required
@@ -786,8 +875,8 @@ def assignment_status(assignment_id):
                 'score': submission.get('score'),
                 'feedback': submission.get('feedback'),
                 'completed': submission.get('status') == 'completed',
-                'submission_date': submission.get('submission_date'),
-                'id': submission['id']  # Make sure the submission ID is included
+                'submission_date': submission.get('submission_date') or submission.get('updated_at'),
+                'id': submission['id']  # The submission ID is included here
             }
             
             submissions_data.append(submission)
@@ -818,16 +907,40 @@ def assignment_status(assignment_id):
             if student_doc.exists:
                 students.append({'id': student_doc.id, **student_doc.to_dict()})
     
+    # After getting the students list, sort them by roll number
+    students = sort_students_by_roll(students)
+    
     # Make sure all students have a status entry
     for student in students:
         if student['id'] not in status_dict:
-            status_dict[student['id']] = {
-                'status': 'pending',
-                'score': None,
-                'feedback': None,
-                'completed': False,
-                'submission_date': None
-            }
+            # First, check if we need to create a submission for this student
+            need_new_submission = True
+            
+            # Create a new submission entry in the database for this student
+            if need_new_submission:
+                new_submission = {
+                    'assignment_id': assignment_id,
+                    'student_id': student['id'],
+                    'teacher_id': teacher_id,
+                    'status': 'pending',
+                    'score': None,
+                    'feedback': None,
+                    'created_at': firestore.SERVER_TIMESTAMP
+                }
+                
+                # Add the submission to Firestore and get the new ID
+                submission_ref = db.collection('submissions').add(new_submission)
+                submission_id = submission_ref[1].id
+                
+                # Now use this ID in the status_dict
+                status_dict[student['id']] = {
+                    'status': 'pending',
+                    'score': None,
+                    'feedback': None,
+                    'completed': False,
+                    'submission_date': None,
+                    'id': submission_id  # Include the new submission ID
+                }
     
     # Generate a human-readable targeting info string
     target_info = None
@@ -842,12 +955,24 @@ def assignment_status(assignment_id):
     elif target_type == 'specific':
         target_info = f"{len(target_value)} Specific Students"
     
+    # Before returning the template, ensure we have accurate completion counts
+    completed_count = sum(1 for status in status_dict.values() if status.get('completed', False))
+    total_count = len(students)
+    completion_percentage = int((completed_count / total_count * 100) if total_count > 0 else 0)
+    
+    # Enhanced debug logging
+    print(f"Status calculation: {completed_count} completed out of {total_count} students")
+    print(f"Completion percentage: {completion_percentage}%")
+    print(f"Status dictionary has {len(status_dict)} entries")
+    
     return render_template('assignment_status.html', 
                           assignment=assignment,
                           submissions=submissions_data,
                           students=students,
                           status_dict=status_dict,
                           target_info=target_info,
+                          completed_count=completed_count,  # Pass the count explicitly
+                          completion_percentage=completion_percentage,  # Pass the percentage explicitly
                           now=datetime.now())
 
 @app.route('/update_submission/<submission_id>', methods=['POST'])
@@ -892,14 +1017,19 @@ def update_submission(submission_id):
 def update_status(status_id):
     teacher_id = session.get('teacher_id')
     
+    print(f"Update status called for submission ID: {status_id}")
+    print(f"Form data: {request.form}")
+    
     # Get the submission
     submission_doc = db.collection('submissions').document(status_id).get()
     
     if not submission_doc.exists:
+        print(f"Submission not found with ID: {status_id}")
         flash('Status entry not found!')
         return redirect(url_for('assignments'))
     
     submission = submission_doc.to_dict()
+    print(f"Found submission: {submission}")
     
     # Verify ownership
     if submission.get('teacher_id') != teacher_id:
@@ -909,15 +1039,31 @@ def update_status(status_id):
     # Get the completed status from checkbox
     completed = 'completed' in request.form
     
-    # Update submission
+    # Update submission with all important fields
     updated_data = {
         'status': 'completed' if completed else 'pending',
         'updated_at': firestore.SERVER_TIMESTAMP
     }
     
-    db.collection('submissions').document(status_id).update(updated_data)
+    # Set submission_date only when completing for the first time
+    if completed and not submission.get('submission_date'):
+        updated_data['submission_date'] = firestore.SERVER_TIMESTAMP
     
-    # Get referrer or default to assignment status page
+    # Perform the update and handle any errors
+    try:
+        db.collection('submissions').document(status_id).update(updated_data)
+        
+        # Force a delay to ensure Firebase has time to update
+        import time
+        time.sleep(0.5)
+        
+        print(f"Successfully updated submission status to: {'completed' if completed else 'pending'}")
+        flash('Status updated successfully!', 'success')
+    except Exception as e:
+        print(f"Error updating status: {str(e)}")
+        flash(f'Error updating status: {str(e)}', 'danger')
+    
+    # Get the assignment ID to redirect back to assignment status page
     assignment_id = submission.get('assignment_id')
     return redirect(url_for('assignment_status', assignment_id=assignment_id))
 
